@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuadrícula de Colores</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;  /* Evita scrollbars */
+        }
+        canvas {
+            display: block;  /* Elimina márgenes por defecto */
+        }
+    </style>
+</head>
+<body>
+    <canvas id="miLienzo"></canvas>
+    <script>
+        var lienzo = document.getElementById('miLienzo');
+        var ctx = lienzo.getContext('2d');
+
+        var columnasFijas = 20;  // Número fijo de columnas inicial
+        var tamañoCelda;
+        var columnas;
+        var filas;
+        var tiempoParaRevertir = 300;  // Tiempo en milisegundos para que los cuadrados vuelvan a su color original
+        var colores = [];  // Array para guardar los colores originales
+        var tiempoBlanco = [];  // Array para guardar el tiempo en que un cuadrado se vuelve blanco
+        var niveldeBlanco = 244;
+
+        // Inicializar los colores y los tiempos
+        function inicializarColoresYTiempo() {
+            tamañoCelda = lienzo.width / columnasFijas;  // Calcular tamaño de celda basado en el número de columnas fijas
+            columnas = columnasFijas;  // Mantener el número de columnas fijo
+            filas = Math.ceil(lienzo.height / tamañoCelda);  // Calcular número de filas basado en el tamaño del lienzo
+
+            colores = [];
+            tiempoBlanco = [];
+
+            // Inicializar colores aleatorios y tiempos
+            for (var i = 0; i < columnas; i++) {
+                colores[i] = [];
+                tiempoBlanco[i] = [];
+                for (var j = 0; j < filas; j++) {
+                    colores[i][j] = 'rgb(' + Math.floor(Math.random() * (niveldeBlanco - 127) + 127) + ', ' +
+                                            Math.floor(Math.random() * (niveldeBlanco - 127) + 127) + ', ' +
+                                            Math.floor(Math.random() * (niveldeBlanco - 127) + 127) + ')';
+                    tiempoBlanco[i][j] = 0;  // Inicialmente, ningún cuadrado es blanco
+                }
+            }
+        }
+
+        // Dibujar la cuadrícula en el lienzo
+        function dibujarCuadricula() {
+            for (var i = 0; i < columnas; i++) {
+                for (var j = 0; j < filas; j++) {
+                    ctx.fillStyle = colores[i][j];
+                    ctx.fillRect(i * tamañoCelda, j * tamañoCelda, tamañoCelda, tamañoCelda);
+                }
+            }
+        }
+
+        // Revertir colores después del tiempo establecido
+        function revertirColores() {
+            var tiempoActual = Date.now();
+            for (var i = 0; i < columnas; i++) {
+                for (var j = 0; j < filas; j++) {
+                    if (tiempoBlanco[i][j] !== 0 && tiempoActual - tiempoBlanco[i][j] > tiempoParaRevertir) {
+                        tiempoBlanco[i][j] = 0;  // Reiniciar el tiempo blanco
+                        colores[i][j] = 'rgb(' + Math.floor(Math.random() * (niveldeBlanco - 127) + 127) + ', ' +
+                                                Math.floor(Math.random() * (niveldeBlanco - 127) + 127) + ', ' +
+                                                Math.floor(Math.random() * (niveldeBlanco - 127) + 127) + ')';
+                    }
+                }
+            }
+        }
+
+        // Función para la animación continua
+        function animar() {
+            ctx.clearRect(0, 0, lienzo.width, lienzo.height);
+            revertirColores();
+            dibujarCuadricula();
+            requestAnimationFrame(animar);
+        }
+
+        // Detectar el movimiento del ratón y cambiar el color de las celdas a blanco
+        lienzo.addEventListener('mousemove', function(evento) {
+            var rect = lienzo.getBoundingClientRect();
+            var x = evento.clientX - rect.left;
+            var y = evento.clientY - rect.top;
+            var columna = Math.floor(x / tamañoCelda);
+            var fila = Math.floor(y / tamañoCelda);
+            if (columna >= 0 && columna < columnas && fila >= 0 && fila < filas) {
+                colores[columna][fila] = 'rgb(255, 255, 255)';
+                tiempoBlanco[columna][fila] = Date.now();  // Guardar el tiempo actual
+            }
+        });
+
+        // Ajustar el tamaño del lienzo al tamaño de la ventana y reiniciar colores y tiempos
+        function ajustarLienzo() {
+            lienzo.width = window.innerWidth;
+            lienzo.height = window.innerHeight;
+
+            tamañoCelda = lienzo.width / columnasFijas;  // Calcular tamaño de celda basado en el número fijo de columnas
+            columnas = columnasFijas;  // Mantener el número fijo de columnas
+            filas = Math.ceil(lienzo.height / tamañoCelda);  // Calcular número de filas basado en el tamaño del lienzo
+
+            inicializarColoresYTiempo();
+        }
+
+        // Ajustar la cantidad de columnas con la rueda del ratón
+        window.addEventListener('wheel', function(evento) {
+            if (evento.deltaY < 0) {
+                columnasFijas = Math.min(columnasFijas + 1, 50);  // Limitar a 50 columnas
+            } else {
+                columnasFijas = Math.max(columnasFijas - 1, 5);  // Limitar a 5 columnas
+            }
+            ajustarLienzo();  // Reajustar el lienzo y las celdas
+        });
+
+        // Ajustar colores al hacer clic
+        lienzo.addEventListener('click', function(evento) {
+            var rect = lienzo.getBoundingClientRect();
+            var x = evento.clientX - rect.left;
+            if (x < lienzo.width / 2) {
+                // Hacer colores más brillantes
+                niveldeBlanco = Math.min(niveldeBlanco + 10, 255);
+            } else {
+                // Hacer colores más pastel
+                niveldeBlanco = Math.max(niveldeBlanco - 10, 127);
+            }
+            inicializarColoresYTiempo();  // Reajustar colores
+        });
+
+        // Ajustar colores con zoom en dispositivos móviles
+        lienzo.addEventListener('touchstart', function(evento) {
+            if (evento.touches.length === 2) {
+                // Obtener la distancia inicial entre dos dedos
+                var distanciaInicial = Math.sqrt(Math.pow(evento.touches[0].clientX - evento.touches[1].clientX, 2) +
+                                                Math.pow(evento.touches[0].clientY - evento.touches[1].clientY, 2));
+                function manejarTouchMove(evento) {
+                    if (evento.touches.length === 2) {
+                        // Obtener la distancia actual entre dos dedos
+                        var distanciaActual = Math.sqrt(Math.pow(evento.touches[0].clientX - evento.touches[1].clientX, 2) +
+                                                       Math.pow(evento.touches[0].clientY - evento.touches[1].clientY, 2));
+                        if (distanciaActual > distanciaInicial) {
+                            // Hacer colores más brillantes
+                            niveldeBlanco = Math.min(niveldeBlanco + 10, 255);
+                        } else {
+                            // Hacer colores más pastel
+                            niveldeBlanco = Math.max(niveldeBlanco - 10, 127);
+                        }
+                        inicializarColoresYTiempo();  // Reajustar colores
+                        // Actualizar la distancia inicial
+                        distanciaInicial = distanciaActual;
+                    }
+                }
+                function limpiarTouchMove() {
+                    lienzo.removeEventListener('touchmove', manejarTouchMove);
+                    lienzo.removeEventListener('touchend', limpiarTouchMove);
+                }
+                lienzo.addEventListener('touchmove', manejarTouchMove);
+                lienzo.addEventListener('touchend', limpiarTouchMove);
+            } else if (evento.touches.length === 3) {
+                // Detectar el movimiento inicial de tres dedos
+                var yInicial = (evento.touches[0].clientY + evento.touches[1].clientY + evento.touches[2].clientY) / 3;
+                function manejarThreeFingerMove(evento) {
+                    if (evento.touches.length === 3) {
+                        // Calcular la posición Y actual de tres dedos
+                        var yActual = (evento.touches[0].clientY + evento.touches[1].clientY + evento.touches[2].clientY) / 3;
+                        if (yActual < yInicial) {
+                            // Aumentar columnas
+                            columnasFijas = Math.min(columnasFijas + 1, 50);
+                        } else if (yActual > yInicial) {
+                            // Disminuir columnas
+                            columnasFijas = Math.max(columnasFijas - 1, 5);
+                        }
+                        ajustarLienzo();  // Reajustar el lienzo y las celdas
+                        // Actualizar la posición Y inicial
+                        yInicial = yActual;
+                    }
+                }
+                function limpiarThreeFingerMove() {
+                    lienzo.removeEventListener('touchmove', manejarThreeFingerMove);
+                    lienzo.removeEventListener('touchend', limpiarThreeFingerMove);
+                }
+                lienzo.addEventListener('touchmove', manejarThreeFingerMove);
+                lienzo.addEventListener('touchend', limpiarThreeFingerMove);
+            }
+        });
+
+        // Inicializar el lienzo y comenzar la animación
+        ajustarLienzo();
+        animar();
+
+        // Reajustar el lienzo cuando cambia el tamaño de la ventana
+        window.addEventListener('resize', ajustarLienzo);
+    </script>
+</body>
+</html>
