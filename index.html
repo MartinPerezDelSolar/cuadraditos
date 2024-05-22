@@ -115,12 +115,12 @@
 
         // Ajustar la cantidad de columnas con la rueda del ratón
         window.addEventListener('wheel', function(evento) {
-            if (evento.deltaY < 0) {
-                columnasFijas = Math.min(columnasFijas + 1, 50);  // Limitar a 50 columnas
-            } else {
-                columnasFijas = Math.max(columnasFijas - 1, 5);  // Limitar a 5 columnas
+            var nuevoTamañoCelda = tamañoCelda - evento.deltaY * 0.05;  // Ajustar tamaño celda basado en el desplazamiento de la rueda del ratón
+            if (nuevoTamañoCelda >= 5) {  // Limitar tamaño mínimo de celda a 5 píxeles
+                tamañoCelda = nuevoTamañoCelda;
+                columnasFijas = Math.floor(lienzo.width / tamañoCelda);  // Recalcular el número de columnas basado en el nuevo tamaño de la celda
+                ajustarLienzo();  // Reajustar el lienzo y las celdas
             }
-            ajustarLienzo();  // Reajustar el lienzo y las celdas
         });
 
         // Ajustar colores al hacer clic
@@ -174,11 +174,14 @@
                         // Calcular la posición Y actual de tres dedos
                         var yActual = (evento.touches[0].clientY + evento.touches[1].clientY + evento.touches[2].clientY) / 3;
                         if (yActual < yInicial) {
-                            // Aumentar columnas
-                            columnasFijas = Math.min(columnasFijas + 1, 50);
+                            // Incrementar columnas
+                            columnasFijas++;
                         } else if (yActual > yInicial) {
-                            // Disminuir columnas
-                            columnasFijas = Math.max(columnasFijas - 1, 5);
+                            // Disminuir columnas, con un tamaño mínimo de celda de 5 píxeles
+                            var nuevoTamañoCelda = lienzo.width / (columnasFijas - 1);
+                            if (nuevoTamañoCelda >= 5) {
+                                columnasFijas--;
+                            }
                         }
                         ajustarLienzo();  // Reajustar el lienzo y las celdas
                         // Actualizar la posición Y inicial
